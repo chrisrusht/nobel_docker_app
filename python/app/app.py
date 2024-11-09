@@ -103,9 +103,11 @@ def fuzzy_search_nested(path, index_name, query_fields, fuzziness="AUTO"):
     response = es.search(index=index_name, body=query)
     return response['hits']['hits']
 
-# Example usage:
-# fuzzy_search("nobel_prizes", {"firstname": "albert", "surname": "einstein"})
-
+def create_result_list(results):
+    result_list = []
+    for result in results:
+        result_list.append({result['inner_hits']})
+    return result_list
 # --- HELPER FUNCTIONS END --- #
 
 # --- FLASK API ROUTES START --- #
@@ -114,25 +116,35 @@ def fuzzy_search_nested(path, index_name, query_fields, fuzziness="AUTO"):
 def get_nobel_firstname(firstname):
     query_fields = {"firstname": firstname}
     results = fuzzy_search_nested("laureates", index_name, query_fields)
-    return jsonify(results)
+    return create_result_list(results)
+
+@app.route('/search/surname=<surname>')
+def get_nobel_surname(surname):
+    query_fields = {"surname": surname}
+    results = fuzzy_search_nested("laureates", index_name, query_fields)
+    return jsonify(create_result_list(results))
+
 
 @app.route('/search/firstname=<firstname>&surname=<surname>')
 def get_nobel_firstname_and_surname(firstname, surname):
     query_fields = {"firstname": firstname, "surname": surname}
     results = fuzzy_search_nested("laureates", index_name, query_fields)
-    return jsonify(results)
+    return jsonify(create_result_list(results))
+
 
 @app.route('/search/category=<category>')
 def get_nobel_category(category):
     query_fields = {"category": category}
     results = fuzzy_search(index_name, query_fields)
-    return jsonify(results)
+    return jsonify(create_result_list(results))
+
 
 @app.route('/search/description=<description>')
 def get_nobel_description(description):
     query_fields = {"motivation": description}
     results = fuzzy_search_nested("laureates", index_name, query_fields)
-    return jsonify(results)
+    return jsonify(create_result_list(results))
+
 # --- FLASK API ROUTES END --- #
 
 # The start the flask application in port 8000
