@@ -103,11 +103,6 @@ def fuzzy_search_nested(path, index_name, query_fields, fuzziness="AUTO"):
     response = es.search(index=index_name, body=query)
     return response['hits']['hits']
 
-def create_result_list(results):
-    result_list = []
-    for result in results:
-        result_list.append({result['inner_hits']})
-    return result_list
 # --- HELPER FUNCTIONS END --- #
 
 # --- FLASK API ROUTES START --- #
@@ -116,34 +111,69 @@ def create_result_list(results):
 def get_nobel_firstname(firstname):
     query_fields = {"firstname": firstname}
     results = fuzzy_search_nested("laureates", index_name, query_fields)
-    return create_result_list(results)
+    response = []
+    for result in results:
+        response.append({
+            "laureate": result['inner_hits']['laureates']['hits']['hits'][0]['_source'],
+            "category": result['_source']['category'],
+            "year": result['_source']['year']
+        })
+    return jsonify(response)
+
 
 @app.route('/search/surname=<surname>')
 def get_nobel_surname(surname):
     query_fields = {"surname": surname}
     results = fuzzy_search_nested("laureates", index_name, query_fields)
-    return jsonify(create_result_list(results))
+    response = []
+    for result in results:
+        response.append({
+            "laureate": result['inner_hits']['laureates']['hits']['hits'][0]['_source'],
+            "category": result['_source']['category'],
+            "year": result['_source']['year']
+        })
+    return jsonify(response)
 
 
 @app.route('/search/firstname=<firstname>&surname=<surname>')
 def get_nobel_firstname_and_surname(firstname, surname):
     query_fields = {"firstname": firstname, "surname": surname}
     results = fuzzy_search_nested("laureates", index_name, query_fields)
-    return jsonify(create_result_list(results))
+    top_result = results[0]
+    return jsonify({
+        "laureate": top_result['inner_hits']['laureates']['hits']['hits'][0]['_source'],
+        "category": top_result['_source']['category'],
+        "year": top_result['_source']['year']
+    })
 
 
 @app.route('/search/category=<category>')
 def get_nobel_category(category):
     query_fields = {"category": category}
     results = fuzzy_search(index_name, query_fields)
-    return jsonify(create_result_list(results))
+    response = []
+    for result in results:
+        for laureate in result['_source']['laureates']:
+            response.append({
+                "laureate": laureate,
+                "category": result['_source']['category'],
+                "year": result['_source']['year']
+            })
+    return jsonify(response)
 
 
 @app.route('/search/description=<description>')
 def get_nobel_description(description):
     query_fields = {"motivation": description}
     results = fuzzy_search_nested("laureates", index_name, query_fields)
-    return jsonify(create_result_list(results))
+    response = []
+    for result in results:
+        response.append({
+            "laureate": result['inner_hits']['laureates']['hits']['hits'][0]['_source'],
+            "category": result['_source']['category'],
+            "year": result['_source']['year']
+        })
+    return jsonify(response)
 
 # --- FLASK API ROUTES END --- #
 
