@@ -1,5 +1,14 @@
 version: '3'
 services:
+  nginx:
+    build: ./nginx
+    ports:
+      - "8080:8080"
+    depends_on:
+      - python
+    networks:
+      - local
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.2.3
     container_name: elasticsearch
@@ -12,6 +21,16 @@ services:
       - "9200:9200"                              # Expose Elasticsearch on port 9200
     networks:
       - local                                    # Connect to the 'local' network
+
+  python:
+    build: ./python
+    environment:
+      ELASTIC_PASSWORD: christestpass
+    depends_on:
+      elasticsearch:
+        condition: service_started
+    networks:
+      - local
 
 # Create a network for local development
 networks:
